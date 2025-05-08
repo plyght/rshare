@@ -3,7 +3,15 @@ use tokio::process::Child;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
+use crate::config::Config;
 use crate::tunnel;
+
+#[derive(PartialEq)]
+pub enum AppMode {
+    Normal,
+    ConfigPort,
+    ConfigServerPort,
+}
 
 pub struct App {
     pub port: u16,
@@ -16,10 +24,31 @@ pub struct App {
     pub log_offset: usize,
     pub client_id: String,
     pub connection_error: Option<String>,
+    pub mode: AppMode,
+    pub config: Config,
+    pub input_buffer: String,
 }
 
 impl App {
     pub fn new(port: u16, domain: Option<String>, server_port: u16) -> Self {
+        // Load config
+        let config = Config::load().unwrap_or_else(|e| {
+            eprintln!("Error loading config: {}", e);
+            Config::default()
+        });
+        
+        // Command line arguments override config values
+        let port = if port != 8080 { port } else { config.port };
+        let server_port = if server_port != 8000 { server_port } else { config.server_port };
+        let domain = domain.or_else(|| config.domain.clone());
+        
+        // Update config with any command line overrides
+        let config = Config {
+            port,
+            server_port,
+            domain: domain.clone(),
+        };
+        
         Self {
             port,
             domain,
@@ -31,6 +60,9 @@ impl App {
             log_offset: 0,
             client_id: Uuid::new_v4().to_string(),
             connection_error: None,
+            mode: AppMode::Normal,
+            config,
+            input_buffer: String::new(),
         }
     }
 
@@ -116,5 +148,70 @@ impl App {
         };
 
         self.logs.iter().skip(start).collect()
+    }
+    
+    pub fn enter_config_port_mode(&mut self) {
+        self.mode = AppMode::ConfigPort;
+        self.input_buffer = self.port.to_string();
+    }
+    
+    pub fn enter_config_server_port_mode(&mut self) {
+        self.mode = AppMode::ConfigServerPort;
+        self.input_buffer = self.server_port.to_string();
+    }
+    
+    pub fn exit_config_mode(&mut self) {
+        self.mode = AppMode::Normal;
+        self.input_buffer.clear();
+    }
+    
+    pub fn apply_config(&mut self) -> Result<()> {
+        match self.mode {
+            AppMode::ConfigPort => {
+                if let Ok(port) = self.input_buffer.parse::<u16>() {
+                    if port > 0 {
+                        self.port = port;
+                        self.config.port = port;
+                        self.add_log(&format!("Port updated to: {}", port));
+                        self.config.save()?;
+                    } else {
+                        self.add_log("Invalid port: must be greater than 0");
+                    }
+                } else {
+                    self.add_log("Invalid port number");
+                }
+            }
+            AppMode::ConfigServerPort => {
+                if let Ok(port) = self.input_buffer.parse::<u16>() {
+                    if port > 0 {
+                        self.server_port = port;
+                        self.config.server_port = port;
+                        self.add_log(&format!("Server port updated to: {}", port));
+                        self.config.save()?;
+                    } else {
+                        self.add_log("Invalid port: must be greater than 0");
+                    }
+                } else {
+                    self.add_log("Invalid port number");
+                }
+            }
+            _ => {}
+        }
+        
+        self.exit_config_mode();
+        Ok(())
+    }
+    
+    pub fn handle_key_input(&mut self, key_char: char) {
+        if self.mode == AppMode::Normal {
+            return;
+        }
+        
+        // Allow only digits in port config
+        if key_char.is_digit(10) {
+            self.input_buffer.push(key_char);
+        } else if key_char == '\u{8}' || key_char == '\u{7f}' { // backspace
+            self.input_buffer.pop();
+        }
     }
 }
