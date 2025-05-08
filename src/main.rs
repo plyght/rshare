@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -80,7 +80,7 @@ async fn run_app<B: ratatui::backend::Backend>(
     app: &mut app::App,
 ) -> Result<()> {
     loop {
-        terminal.draw(|f| ui::draw::<B>(f, app))?;
+        terminal.draw(|f| ui::draw(f, app))?;
 
         if let Event::Key(key) = event::read()? {
             match app.mode {

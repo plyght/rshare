@@ -208,7 +208,7 @@ impl App {
         }
         
         // Allow only digits in port config
-        if key_char.is_digit(10) {
+        if key_char.is_ascii_digit() {
             self.input_buffer.push(key_char);
         } else if key_char == '\u{8}' || key_char == '\u{7f}' { // backspace
             self.input_buffer.pop();

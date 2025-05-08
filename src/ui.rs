@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::Text,
@@ -9,7 +8,7 @@ use ratatui::{
 
 use crate::app::{App, AppMode};
 
-pub fn draw<B: Backend>(f: &mut Frame, app: &App) {
+pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(2)
