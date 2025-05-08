@@ -1,0 +1,11 @@
+# Placeholder for screenshot.png
+
+This file is a placeholder for a screenshot of the rshare TUI interface.
+When deploying the application, replace this file with an actual screenshot.
+
+The screenshot should show:
+1. The TUI interface with a running tunnel
+2. The status bar showing the tunnel is active
+3. The logs section showing connection information
+
+Recommended dimensions: 800x600 pixels
