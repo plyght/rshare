@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -9,6 +9,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
 
 mod app;
+mod config;
 mod tunnel;
 mod ui;
 
@@ -82,23 +83,50 @@ async fn run_app<B: ratatui::backend::Backend>(
         terminal.draw(|f| ui::draw::<B>(f, app))?;
 
         if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => {
-                    if app.tunnel_active {
-                        app.stop_tunnel().await?;
+            match app.mode {
+                app::AppMode::Normal => {
+                    match key.code {
+                        KeyCode::Char('q') => {
+                            if app.tunnel_active {
+                                app.stop_tunnel().await?;
+                            }
+                            return Ok(());
+                        }
+                        KeyCode::Char('s') => {
+                            if !app.tunnel_active {
+                                app.start_tunnel().await?;
+                            } else {
+                                app.stop_tunnel().await?;
+                            }
+                        }
+                        KeyCode::Char('p') => {
+                            app.enter_config_port_mode();
+                        }
+                        KeyCode::Char('P') => {
+                            app.enter_config_server_port_mode();
+                        }
+                        KeyCode::Up => app.scroll_logs_up(),
+                        KeyCode::Down => app.scroll_logs_down(),
+                        _ => {}
                     }
-                    return Ok(());
                 }
-                KeyCode::Char('s') => {
-                    if !app.tunnel_active {
-                        app.start_tunnel().await?;
-                    } else {
-                        app.stop_tunnel().await?;
+                app::AppMode::ConfigPort | app::AppMode::ConfigServerPort => {
+                    match key.code {
+                        KeyCode::Esc => {
+                            app.exit_config_mode();
+                        }
+                        KeyCode::Enter => {
+                            app.apply_config()?;
+                        }
+                        KeyCode::Char(c) => {
+                            app.handle_key_input(c);
+                        }
+                        KeyCode::Backspace => {
+                            app.handle_key_input('\u{8}');
+                        }
+                        _ => {}
                     }
                 }
-                KeyCode::Up => app.scroll_logs_up(),
-                KeyCode::Down => app.scroll_logs_down(),
-                _ => {}
             }
         }
     }

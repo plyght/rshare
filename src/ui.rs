@@ -2,11 +2,12 @@ use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
+    text::Text,
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
 
-use crate::app::App;
+use crate::app::{App, AppMode};
 
 pub fn draw<B: Backend>(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
@@ -36,6 +37,18 @@ fn draw_header(f: &mut Frame, _app: &App, area: Rect) {
 }
 
 fn draw_status(f: &mut Frame, app: &App, area: Rect) {
+    match app.mode {
+        AppMode::ConfigPort => {
+            draw_config_input(f, app, area, "Configure Port", "Enter new port value:", &app.input_buffer);
+            return;
+        }
+        AppMode::ConfigServerPort => {
+            draw_config_input(f, app, area, "Configure Server Port", "Enter new server port value:", &app.input_buffer);
+            return;
+        }
+        _ => {}
+    }
+
     let status_text;
     let color;
 
@@ -60,7 +73,7 @@ fn draw_status(f: &mut Frame, app: &App, area: Rect) {
         color = Color::Yellow;
     }
 
-    let help = " [s] Start/Stop  [q] Quit  [↑/↓] Scroll logs";
+    let help = " [s] Start/Stop  [p] Configure port  [P] Configure server port  [q] Quit  [↑/↓] Scroll logs";
 
     let paragraphs = [status_text, help.to_string()];
     let text = paragraphs.join("\n");
@@ -70,6 +83,16 @@ fn draw_status(f: &mut Frame, app: &App, area: Rect) {
         .block(Block::default().borders(Borders::ALL).title("Status"));
 
     f.render_widget(status_widget, area);
+}
+
+fn draw_config_input(f: &mut Frame, _app: &App, area: Rect, title: &str, prompt: &str, input: &str) {
+    let input_text = format!("{} {}\n[Enter] Save  [Esc] Cancel", prompt, input);
+    
+    let input_widget = Paragraph::new(Text::from(input_text))
+        .style(Style::default().fg(Color::Cyan))
+        .block(Block::default().borders(Borders::ALL).title(title));
+    
+    f.render_widget(input_widget, area);
 }
 
 fn draw_logs(f: &mut Frame, app: &App, area: Rect) {

@@ -55,8 +55,20 @@ cargo run -- --server --public-port 9000
 ### Keyboard Shortcuts
 
 - `s`: Start/stop tunnel
+- `p`: Configure local port
+- `P`: Configure server port
 - `q`: Quit
 - `↑/↓`: Scroll logs
+
+### Configuration
+
+rshare supports persistent configuration through a config file located at `~/.config/rshare/config.json`. This allows you to set default values for:
+
+- Local port (the port of your application to expose)
+- Server port (the port the tunnel server is running on)
+- Custom domain
+
+The configuration can be modified either through the TUI (using the keyboard shortcuts) or by directly editing the config file. Command line arguments will override the config file values.
 
 ## Building from source
 
